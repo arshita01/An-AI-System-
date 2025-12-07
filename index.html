@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Data Analyzer - Powered by Gemini</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+    <style>
+        @keyframes slideIn {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .animate-slideIn {
+            animation: slideIn 0.9s ease-out forwards;
+        }
+        .animate-pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.6s ease-out;
+        }
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 15px 60px rgba(0, 0, 0, 0.35);
+            border-radius: 20px;
+        }
+        .hover-glow:hover {
+            box-shadow: 0 0 35px rgba(124, 58, 237, 0.9);
+            transform: translateY(-6px);
+            transition: all 0.4s ease;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #6b21a8, #7c3aed, #db2777, #f59e0b, #22d3ee);
+            background-size: 500% 500%;
+            animation: gradientShift 15s ease infinite;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        canvas {
+            max-width: 100%;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px;
+        }
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .result-text {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2rem;
+            border-radius: 12px;
+            color: #f3f4f6;
+            white-space: pre-wrap;
+            line-height: 1.8;
+            font-size: 1.15rem;
+        }
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 12px;
+        }
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2.5rem;
+            transition: all 0.4s ease;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95rem;
+        }
+        th, td {
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 16px;
+            text-align: left;
+        }
+        th {
+            background: linear-gradient(to right, #7c3aed, #db2777);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .chart-container {
+            position: relative;
+            padding: 1.5rem;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+        .chart-container:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+        }
+        .chart-placeholder {
+            color: #f3f4f6;
+            text-align: center;
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .loader-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .loader {
+            border: 6px solid rgba(255, 255, 255, 0.2);
+            border-top: 6px solid #7c3aed;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        .chart-buttons {
+            display: none;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            justify-content: center;
+        }
+        .chart-button {
+            background: linear-gradient(to right, #7c3aed, #db2777);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .chart-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.7);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4 sm:p-10">
+    <div id="particles-js"></div>
+    <div id="loader" class="loader-overlay">
+        <div class="loader"></div>
+    </div>
+    <div class="container max-w-7xl glassmorphism p-8 sm:p-14 animate-slideIn">
+        <h1 class="text-5xl sm:text-7xl font-extrabold text-center text-white mb-5 tracking-tight">
+            AI Data Analyzer
+        </h1>
+        <p class="text-center text-gray-100 mb-12 text-lg sm:text-2xl opacity-90">
+            Powered by Google Gemini - Unlock powerful insights with AI
+        </p>
+
+        <!-- Upload and Query Forms -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-14">
+            <form id="uploadForm" class="flex flex-col gap-5">
+                <label for="file" class="text-xl font-semibold text-white">Upload Your Data</label>
+                <div class="flex flex-col sm:flex-row gap-5">
+                    <input type="file" id="file" name="file" accept=".csv,.xlsx,.json,.pdf,.docx,.txt" 
+                           class="flex-1 p-5 border border-gray-300 rounded-2xl bg-white/15 text-white placeholder-gray-400 focus:ring-4 focus:ring-purple-400 focus:border-transparent transition-all duration-300">
+                    <button type="submit" 
+                            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-10 py-5 rounded-2xl hover-glow font-semibold text-lg">
+                        Upload Data
+                    </button>
+                </div>
+                <p class="text-sm text-gray-200 opacity-80">Supported formats: CSV, Excel, JSON, PDF, Word, TXT</p>
+            </form>
+            <form id="queryForm" class="flex flex-col gap-5">
+                <label for="query" class="text-xl font-semibold text-white">Ask a Question (Powered by Gemini)</label>
+                <div class="flex flex-col sm:flex-row gap-5">
+                    <input type="text" id="query" name="query" 
+                           placeholder="e.g., 'What are the sales trends?', 'Summarize the data', 'Create a chart of revenue by region'" 
+                           class="flex-1 p-5 border border-gray-300 rounded-2xl bg-white/15 text-white placeholder-gray-400 focus:ring-4 focus:ring-purple-400 focus:border-transparent transition-all duration-300">
+                    <button type="submit" 
+                            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-10 py-5 rounded-2xl hover-glow font-semibold text-lg">
+                        Analyze with AI
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="dashboard-card p-10 animate-fadeIn">
+            <h2 class="text-3xl sm:text-4xl font-semibold text-white mb-8">Gemini-Powered Insights Dashboard</h2>
+            <div id="result" class="result-text mb-10"></div>
+            <div id="chartButtons" class="chart-buttons flex">
+                <button id="barButton" class="chart-button">Show Bar Chart</button>
+                <button id="lineButton" class="chart-button">Show Line Chart</button>
+                <button id="pieButton" class="chart-button">Show Pie Chart</button>
+            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div class="chart-container">
+                    <h3 class="text-xl font-medium text-white mb-4">Bar Chart</h3>
+                    <canvas id="barChart" style="display: none;"></canvas>
+                    <div id="barPlaceholder" class="chart-placeholder">Select 'Show Bar Chart' to view visualization</div>
+                </div>
+                <div class="chart-container">
+                    <h3 class="text-xl font-medium text-white mb-4">Line Chart</h3>
+                    <canvas id="lineChart" style="display: none;"></canvas>
+                    <div id="linePlaceholder" class="chart-placeholder">Select 'Show Line Chart' to view visualization</div>
+                </div>
+                <div class="chart-container">
+                    <h3 class="text-xl font-medium text-white mb-4">Pie Chart</h3>
+                    <canvas id="pieChart" style="display: none;"></canvas>
+                    <div id="piePlaceholder" class="chart-placeholder">Select 'Show Pie Chart' to view visualization</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Particles.js
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 30, density: { enable: true, value_area: 1400 } },
+                color: { value: '#ffffff' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.25, random: true },
+                size: { value: 3, random: true },
+                line_linked: { enable: true, distance: 160, color: '#ffffff', opacity: 0.15, width: 1 },
+                move: { enable: true, speed: 0.8, direction: 'none', random: true }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' } },
+                modes: { repulse: { distance: 120 }, push: { particles_nb: 3 } }
+            },
+            retina_detect: true
+        });
+
+        const uploadForm = document.getElementById('uploadForm');
+        const queryForm = document.getElementById('queryForm');
+        const resultDiv = document.getElementById('result');
+        const barChartCanvas = document.getElementById('barChart');
+        const lineChartCanvas = document.getElementById('lineChart');
+        const pieChartCanvas = document.getElementById('pieChart');
+        const barPlaceholder = document.getElementById('barPlaceholder');
+        const linePlaceholder = document.getElementById('linePlaceholder');
+        const piePlaceholder = document.getElementById('piePlaceholder');
+        const chartButtons = document.getElementById('chartButtons');
+        const barButton = document.getElementById('barButton');
+        const lineButton = document.getElementById('lineButton');
+        const pieButton = document.getElementById('pieButton');
+        const loader = document.getElementById('loader');
+        let barChart, lineChart, pieChart, chartData;
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loader.classList.add('active');
+            resultDiv.innerHTML = '';
+            try {
+                const formData = new FormData(uploadForm);
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                loader.classList.remove('active');
+                resultDiv.innerHTML = data.natural_language;
+                chartButtons.style.display = 'none';
+                barChartCanvas.style.display = 'none';
+                lineChartCanvas.style.display = 'none';
+                pieChartCanvas.style.display = 'none';
+                barPlaceholder.style.display = 'block';
+                linePlaceholder.style.display = 'block';
+                piePlaceholder.style.display = 'block';
+                if (barChart) barChart.destroy();
+                if (lineChart) lineChart.destroy();
+                if (pieChart) pieChart.destroy();
+            } catch (error) {
+                loader.classList.remove('active');
+                resultDiv.innerHTML = `<p class="text-red-400 font-semibold text-lg animate-fadeIn">Error: ${error.message}</p>`;
+                console.error('Upload error:', error);
+            }
+        });
+
+        queryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loader.classList.add('active');
+            resultDiv.innerHTML = '';
+            chartButtons.style.display = 'none';
+            barChartCanvas.style.display = 'none';
+            lineChartCanvas.style.display = 'none';
+            pieChartCanvas.style.display = 'none';
+            barPlaceholder.style.display = 'block';
+            linePlaceholder.style.display = 'block';
+            piePlaceholder.style.display = 'block';
+            if (barChart) barChart.destroy();
+            if (lineChart) lineChart.destroy();
+            if (pieChart) pieChart.destroy();
+            
+            const query = document.getElementById('query').value;
+            try {
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await response.json();
+                loader.classList.remove('active');
+                
+                if (data.status === 'error') {
+                    resultDiv.innerHTML = `<p class="text-red-400 font-semibold text-lg animate-fadeIn">${data.result.natural_language}</p>`;
+                    console.error('Query error:', data.result.message);
+                    return;
+                }
+
+                // Display natural language response
+                resultDiv.innerHTML = `<h3 class="text-xl font-semibold text-white mb-4 animate-fadeIn">Gemini Analysis for "${query}"</h3>`;
+                resultDiv.innerHTML += `<div class="result-text animate-fadeIn">${data.result.natural_language}</div>`;
+
+                const resultType = data.result.type;
+                if (resultType === 'chart') {
+                    chartData = data.result;
+                    chartButtons.style.display = 'flex';
+                } else if (resultType === 'report' || resultType === 'extraction' || resultType === 'custom') {
+                    let table = '<div class="table-container animate-fadeIn"><table><thead><tr>';
+                    let headers = [];
+                    if (resultType === 'report' && data.result.data && data.result.data.length && typeof data.result.data[0] === 'object') {
+                        headers = Object.keys(data.result.data[0]);
+                    } else if (resultType === 'extraction' || resultType === 'custom') {
+                        headers = ['Field', 'Value'];
+                        data.result.data = Object.entries(data.result.data).map(([key, value]) => ({ Field: key, Value: value }));
+                    } else if (resultType === 'report' && data.result.data.text) {
+                        headers = ['Content'];
+                        data.result.data = [{ Content: data.result.data.text }];
+                    }
+                    headers.forEach(h => table += `<th>${h}</th>`);
+                    table += '</tr></thead><tbody>';
+                    data.result.data.forEach(row => {
+                        table += '<tr>';
+                        headers.forEach(h => table += `<td>${row[h]}</td>`);
+                        table += '</tr>';
+                    });
+                    table += '</tbody></table></div>';
+                    resultDiv.innerHTML += `<h3 class="text-xl font-semibold text-white mt-8 mb-4 animate-fadeIn">${resultType.charAt(0).toUpperCase() + resultType.slice(1)} Table</h3>${table}`;
+                }
+            } catch (error) {
+                loader.classList.remove('active');
+                resultDiv.innerHTML = `<p class="text-red-400 font-semibold text-lg animate-fadeIn">Error: ${error.message}</p>`;
+                console.error('Query error:', error);
+            }
+        });
+
+        function renderChart(type) {
+            if (!chartData) return;
+            const { labels, values, chart_type } = chartData.data;
+            const query = document.getElementById('query').value;
+            const chartConfig = {
+                data: {
+                    labels,
+                    datasets: [{
+                        label: query,
+                        data: values,
+                        backgroundColor: type === 'pie' ? [
+                            'rgba(124, 58, 237, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(236, 72, 153, 0.6)',
+                            'rgba(16, 185, 129, 0.6)',
+                            'rgba(234, 179, 8, 0.6)'
+                        ] : 'rgba(124, 58, 237, 0.6)',
+                        borderColor: type === 'pie' ? [
+                            'rgba(124, 58, 237, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(234, 179, 8, 1)'
+                        ] : 'rgba(124, 58, 237, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: type !== 'pie' ? {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.2)' }, ticks: { color: 'white', font: { size: 12 } } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.2)' }, ticks: { color: 'white', font: { size: 12 } } }
+                    } : {},
+                    animation: { duration: 1500, easing: 'easeInOutQuart' },
+                    plugins: { 
+                        legend: { display: true, position: type === 'pie' ? 'right' : 'top', labels: { color: 'white', font: { size: 14 } } },
+                        title: { display: true, text: `${type.charAt(0).toUpperCase() + type.slice(1)} Chart: ${chartData.description}`, color: 'white', font: { size: 16, weight: 'bold' } }
+                    }
+                }
+            };
+
+            if (type === 'bar') {
+                if (barChart) barChart.destroy();
+                barChartCanvas.style.display = 'block';
+                barPlaceholder.style.display = 'none';
+                barChart = new Chart(barChartCanvas, { type: 'bar', ...chartConfig });
+            } else if (type === 'line') {
+                if (lineChart) lineChart.destroy();
+                lineChartCanvas.style.display = 'block';
+                linePlaceholder.style.display = 'none';
+                lineChart = new Chart(lineChartCanvas, { type: 'line', ...chartConfig });
+            } else if (type === 'pie') {
+                if (pieChart) pieChart.destroy();
+                pieChartCanvas.style.display = 'block';
+                piePlaceholder.style.display = 'none';
+                pieChart = new Chart(pieChartCanvas, { type: 'pie', ...chartConfig });
+            }
+        }
+
+        barButton.addEventListener('click', () => renderChart('bar'));
+        lineButton.addEventListener('click', () => renderChart('line'));
+        pieButton.addEventListener('click', () => renderChart('pie'));
+    </script>
+</body>
+</html>
